@@ -82,3 +82,9 @@ void TA2_N_IRQHandler()
         last = current;
     }
 }
+
+void dylansfunction()
+{
+
+}
+
