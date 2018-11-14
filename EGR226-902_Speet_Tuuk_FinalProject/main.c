@@ -15,7 +15,11 @@ void main(void)
 {
 	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;		// stop watchdog timer
 }
+<<<<<<< HEAD
 void zack_function()
+=======
+void dylansfunction()
+>>>>>>> branch 'master' of https://github.com/zacktuuk/EGR226-FinalProject.git
 {
 
 }
