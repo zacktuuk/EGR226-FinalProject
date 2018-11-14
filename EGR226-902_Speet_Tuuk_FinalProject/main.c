@@ -82,3 +82,7 @@ void TA2_N_IRQHandler()
         last = current;
     }
 }
+void zack_function()
+{
+    int z = 0;
+}
