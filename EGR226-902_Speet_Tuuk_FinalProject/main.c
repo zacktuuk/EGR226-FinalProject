@@ -82,9 +82,16 @@ void TA2_N_IRQHandler()
         last = current;
     }
 }
+<<<<<<< HEAD
 
 void dylansfunction()
 {
 
 }
 
+=======
+void zack_function()
+{
+    int z = 0;
+}
+>>>>>>> branch 'master' of https://github.com/zacktuuk/EGR226-FinalProject.git
