@@ -24,5 +24,5 @@ void zack_function()
 void dylansfunction()
 >>>>>>> branch 'master' of https://github.com/zacktuuk/EGR226-FinalProject.git
 {
-
+ int a;
 }
