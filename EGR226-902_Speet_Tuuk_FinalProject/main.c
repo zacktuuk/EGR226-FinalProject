@@ -2,8 +2,12 @@
 
 //dylan was here
 //zack was here
+<<<<<<< HEAD
 
 //zack was here again
+=======
+//dylan was here 2
+>>>>>>> branch 'master' of https://github.com/zacktuuk/EGR226-FinalProject.git
 /**
  * main.c
  */
