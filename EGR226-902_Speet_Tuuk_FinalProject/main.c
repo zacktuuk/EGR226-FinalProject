@@ -17,6 +17,9 @@ void main(void)
 }
 <<<<<<< HEAD
 void zack_function()
+{
+    int z = 0;
+}
 =======
 void dylansfunction()
 >>>>>>> branch 'master' of https://github.com/zacktuuk/EGR226-FinalProject.git
