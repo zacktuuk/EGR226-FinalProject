@@ -1,95 +1,221 @@
 #include "msp.h"
 #include <stdio.h>
+#include <string.h>
+/*
+ * Dylan Speet and Zackary Tuck
+ * 11/27/2018 Start
+ * Alarm Clock Final Project for EGR 226-902
+ * Uses timerA, Real time clock, Interrupts, DAC, and ADC
+ * Buttons, LEDs, LCD, Potentiometer, Speaker
+ */
+enum states{
+    setalarm,
+    settime,
+    clock,
+    snooze
+};
+enum states state = clock;
+int time_update = 0, alarm_update = 0, i = 0;
+uint8_t hours, mins, secs;
 
-// IR Input Code.
-// Input 10Hz on P2.4
-// TA0.1
-
-uint16_t current, last = 0, period, firsttime = 1,newreading = 0;
-
+void initialization();
+void LCD_init();
+void RTC_Init();
+void commandWrite(uint8_t command);   //command function
+void pushByte(uint8_t byte);           //pushByte function
+void dataWrite(uint8_t data);        //dataWrite
+void pushNibble (uint8_t nibble);      //push over four bits
+void PulseEnablePin();                  //Pulse Enable (E)
+void delay_ms(unsigned ms);             //delay for a set millisecond delay
+void delay_micro(unsigned microsec);      //delay for a microsecond delay
 void main(void)
 {
     WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;     // stop watchdog timer
-    P2->SEL0 |=  BIT5;
-    P2->SEL1 &= ~BIT5;
-    P2->DIR  |=  BIT5;
-      P1->SEL0 &=  ~BIT0;            //start light off
-      P1->SEL1 &= ~BIT0;
-      P1->DIR  |=  BIT0;
-      P1->OUT &=~BIT0;
-
-    // 3000000 > 65535, so we need dividers
-    TIMER_A0->CTL = 0b0000001011010100;  //SMCLK, UP mode, divide by 8
-    TIMER_A0->CCR[0] = 37500-1;  //10 Hz at 3MHz with Divider 8
-
-    TIMER_A0->CCR[2] = 18750-1;  //50% Duty Cycle
-//    TIMER_A0->CCR[1] = TIMER_A0->CCR[0] >> 1;  // This line works too
-    TIMER_A0->CCTL[2] = 0b11100000;
-
-    float localperiod;
-    float hz;
-
-    P5->SEL0 |=  BIT6;
-    P5->SEL1 &= ~BIT6;
-    P5->DIR  &= ~BIT6;
-//    P2->IE   |=  BIT4;  /Don't do this since it isn't a pin interrupt
-
-    // 3000000 > 65535, so we need dividers
-    TIMER_A2->CTL = 0b0000001011010100;  //SMCLK, UP mode, divide by 8
-    TIMER_A2->CCR[0] = 65535;  //Set to max for maximum capability (can capture up to 0.16 seconds)
-
-//   TIMER_A0->CCR[1] = MaxsVariable;  //10Hz Value
-//    TIMER_A0->CCR[1] = TIMER_A0->CCR[0] >> 1;  // This line works too
-    TIMER_A2->CCTL[1] = 0b0100100100010000;
-
-    NVIC_EnableIRQ(TA2_N_IRQn);
+char currenttime[11];
+char temperature[11];
+char alarmset[11];
+    initialization();                               //initialize all pins, timers, and interrupts
+    RTC_Init();
     __enable_interrupt();
+    LCD_init();
 
-    while(1) {
-        if(!(newreading)){
-        P1->OUT &=~BIT0;
+while (1){
+    switch (state){
+    case clock:
+        if(time_update){
+            commandWrite(0xC1);
+                sprintf(currenttime,"%02d:%02d:%02d XM",hours,mins,secs);
+                while(!(currenttime[i]=='\0')){                            //print my name until null
+                                 dataWrite(currenttime[i]);
+                                 i++;
+                                 }
+                                 i=0;
+                    printf("%02d:%02d:%02d\n",hours,mins,secs);
+                }
+                if(alarm_update){
+                    printf("ALARM\n");
+                    alarm_update = 0;
+                }
+
+        break;
+    }
+}
+}
+void initialization(){
+SysTick -> CTRL = 0;                    //Systic Timer
+SysTick -> LOAD = 0x00FFFFFF;
+SysTick -> VAL = 0;
+SysTick -> CTRL = 0x00000005;
+
+//Following for LCD************************************************************************************************
+P6->SEL0 &= BIT7;                         //DB pins for the LCD screen
+P6->SEL1 &= BIT7;
+P6->DIR  |= BIT7;
+P6->OUT &= ~BIT7;
+P6->SEL0 &= BIT6;
+P6->SEL1 &= BIT6;
+P6->DIR  |= BIT6;
+P6->OUT &= ~BIT6;
+P6->SEL0 &= BIT5;
+P6->SEL1 &= BIT5;
+P6->DIR  |= BIT5;
+P6->OUT &= ~BIT5;
+P6->SEL0 &= BIT4;
+P6->SEL1 &= BIT4;
+P6->DIR  |= BIT4;
+P6->OUT &= ~BIT4;
+P1->SEL0 &= BIT5;                                //Enable Pin
+P1->SEL1 &= BIT5;
+P1->DIR  |= BIT5;
+P1->OUT &= ~BIT5;
+P1->SEL0 &= BIT6;                                    //Rs
+P1->SEL1 &= BIT6;
+P1->DIR  |= BIT6;
+P1->OUT &=~BIT6;
+//LCD done ******************************************************************************************
+
+}
+void commandWrite(uint8_t command)
+{
+
+P1->OUT &= ~BIT6;                            //RS Pin to 0
+pushByte(command);
+
+}
+/*
+ * dataWrite is used to send symbols to the LCD
+ */
+void dataWrite(uint8_t data)
+{
+
+P1->OUT |= BIT6;                               //RS Pin to 1
+pushByte(data);
+}
+void pushByte(uint8_t byte)                                           //referenced from Kandalaf lecture
+{
+uint8_t nibble;
+nibble = (byte & 0xF0)>>4;         //copy in most significant bits by anding with 11110000b
+pushNibble(nibble);
+nibble = byte & 0x0F;              //copy in least significant bits by anding with 00001111b
+pushNibble(nibble);
+delay_micro(10000);                  //delay for 100 microseconds
+}
+void pushNibble (uint8_t nibble)                                          //referenced from Kandalaf Lecture
+{
+P6->OUT &=~(BIT7|BIT6|BIT5|BIT4); //BIT7|BIT6|BIT5|BIT4
+P6->OUT |= (nibble & 0x0F)<<4; //and nibble with 1111b to copy it and then shift it to the left 4 bits
+
+PulseEnablePin();
+}
+/*
+ * PulseEnablePin() allowed for data to be read
+ * on the LCD every 10,000 microseconds
+ */
+void PulseEnablePin()                                                      //referenced from Kandalaf Lecture
+{
+int microsecond = 10;            //delay 10000 microseconds
+P1->OUT &= ~BIT5;               //Enable is zero
+delay_micro(microsecond);       //wait 10000 microseconds
+P1->OUT |= BIT5;                //Enable is 1
+delay_micro(microsecond);       //wait 10000 microseconds
+P1->OUT &= ~BIT5;               //enable is 0
+delay_micro(microsecond);       //wait 10000 microseconds
+}
+void delay_ms(unsigned ms)
+{
+    SysTick -> LOAD = ((ms*3000)-1);   // ms second countdown to 0;
+    SysTick -> VAL =0;                    //any write to CVR clears it
+
+       while((SysTick -> CTRL & 0x00010000)==0);
+}
+void delay_micro(unsigned microsec)
+{
+    SysTick -> LOAD = ((microsec*3)-1);   // microsecond second countdown to 0;
+    SysTick -> VAL =0;                    //any write to CVR clears it
+
+       while((SysTick -> CTRL & 0x00010000)==0);
+}
+void LCD_init()
+{
+    commandWrite(3);                               //LCD_init referenced from Lab Write-up
+    delay_ms(10);
+    commandWrite(3);
+    delay_micro(100);
+    commandWrite(3);
+    delay_ms(10);
+
+    commandWrite(2);
+    delay_micro(100);
+    commandWrite(2);
+    delay_micro(100);
+
+    commandWrite(8);
+    delay_micro(100);
+    commandWrite(0x0F);
+    delay_micro(100);
+    commandWrite(1);
+    delay_micro(100);
+    commandWrite(6);
+    delay_ms(10);
+}
+void RTC_Init(){
+    //Initialize time to 2:45:55 pm
+//    RTC_C->TIM0 = 0x2D00;  //45 min, 0 secs
+    RTC_C->CTL0 = (0xA500);
+    RTC_C->CTL13 = 0;
+
+    RTC_C->TIM0 = 45<<8 | 55;//45 min, 55 secs
+    RTC_C->TIM1 = 1<<8 | 14;  //Monday, 2 pm
+    RTC_C->YEAR = 2018;
+    //Alarm at 2:46 pm
+    RTC_C->AMINHR = 14<<8 | 46 | BIT(15) | BIT(7);  //bit 15 and 7 are Alarm Enable bits
+    RTC_C->ADOWDAY = 0;
+    RTC_C->PS1CTL = 0b0010;  //1/64 second interrupt is 0b0010 a 1 second interupt is
+
+    RTC_C->CTL0 = (0xA500) | BIT5; //turn on interrupt
+    RTC_C->CTL13 = 0;
+    NVIC_EnableIRQ(RTC_C_IRQn);
+
+}
+
+void RTC_C_IRQHandler()
+{
+    if(RTC_C->PS1CTL & BIT0){
+        hours = RTC_C->TIM1 & 0x00FF;
+        mins = (RTC_C->TIM0 & 0xFF00) >> 8;
+        secs = RTC_C->TIM0 & 0x00FF;
+        if(secs != 59){
+            RTC_C->TIM0 = RTC_C->TIM0 + 1;
         }
-        if(newreading)
-        {
-            localperiod = period / (3000000.0/8);  //divider of 8
-            printf("period (ms) = %f, frequency (Hz) = %f\n",localperiod*1000,(1.0/localperiod));
-            hz = (1.0/localperiod);
-            newreading = 0;
-            if(((9 <= hz) && (hz <= 11))||((13 <= hz) && (hz <= 15))){
-                P1->OUT |= BIT0;
-                __delay_cycles(1000);
-
-            }
-
+        else {
+            RTC_C->TIM0 = (((RTC_C->TIM0 & 0xFF00) >> 8)+1)<<8;
+            time_update = 1;
         }
+        RTC_C->PS1CTL &= ~BIT0;
     }
-}
-
-
-//Not yet complete.  Will complete on Wednesday.
-void TA2_N_IRQHandler()
-{
-    if(TIMER_A2->CCTL[1] & BIT0) {
-        TIMER_A2->CCTL[1] &= ~BIT0;  //Clears the interrupt flag
-        current = TIMER_A2->CCR[1];
-        if(firsttime==0)
-        {
-            period = current - last;
-            newreading = 1;
+    if(RTC_C->CTL0 & BIT1)
+    {
+        alarm_update = 1;
+        RTC_C->CTL0 = (0xA500) | BIT5;
     }
-        else
-            firsttime = 0;
-        last = current;
-    }
-}
-
-
-void dylansfunction()
-{
-
-}
-
-void zack_function()
-{
-    int z = 0;
 }
