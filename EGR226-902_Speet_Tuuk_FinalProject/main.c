@@ -259,6 +259,7 @@ void PORT3_IRQHandler()
     P3->IFG = 0;
     if(status & BIT2) //second timing
     {
+
         //sets the RTC to have 1 second real time = 1 second clock time
         time_set=0;
     }
