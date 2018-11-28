@@ -15,7 +15,7 @@ enum states{
     snooze
 };
 enum states state = clock;
-int time_update = 0, alarm_update = 0, i = 0;
+int time_update = 0, alarm_update = 0, i = 0, time_set = 0;
 uint8_t hours, mins, secs;
 
 void initialization();
@@ -218,18 +218,31 @@ void RTC_Init(){
 
 void RTC_C_IRQHandler()
 {
-    if(RTC_C->PS1CTL & BIT0){
-        hours = RTC_C->TIM1 & 0x00FF;
-        mins = (RTC_C->TIM0 & 0xFF00) >> 8;
-        secs = RTC_C->TIM0 & 0x00FF;
-//        if(secs != 59){
-//            RTC_C->TIM0 = RTC_C->TIM0 + 1;
-//        }
-//        else {
-//            RTC_C->TIM0 = (((RTC_C->TIM0 & 0xFF00) >> 8)+1)<<8;
+    if(time_set == 1)
+    {
+        if(RTC_C->PS1CTL & BIT0){
+            hours = RTC_C->TIM1 & 0x00FF;
+            mins = (RTC_C->TIM0 & 0xFF00) >> 8;
+            secs = RTC_C->TIM0 & 0x00FF;
+            if(secs != 59){
+                RTC_C->TIM0 = RTC_C->TIM0 + 1;
+        }
+        else {
+            RTC_C->TIM0 = (((RTC_C->TIM0 & 0xFF00) >> 8)+1)<<8;
             time_update = 1;
-//        }
+        }
         RTC_C->PS1CTL &= ~BIT0;
+        }
+    }
+    if(time_set == 0)
+    {
+        if(RTC_C->PS1CTL & BIT0){
+            hours = RTC_C->TIM1 & 0x00FF;
+            mins = (RTC_C->TIM0 & 0xFF00) >> 8;
+            secs = RTC_C->TIM0 & 0x00FF;
+                time_update = 1;
+            RTC_C->PS1CTL &= ~BIT0;
+        }
     }
     if(RTC_C->CTL0 & BIT1)
     {
@@ -240,21 +253,17 @@ void RTC_C_IRQHandler()
 void PORT3_IRQHandler()
 {
     int status = P3->IFG;
+    //int time_set = 1;
     P3->IFG = 0;
     if(status & BIT2) //second timing
     {
         //sets the RTC to have 1 second real time = 1 second clock time
+        time_set=0;
     }
     if(status & BIT3) //minute timing
     {
         //sets the RTC so that 1 second real time = 1 minute clock time
-        if(secs != 59){
-                   RTC_C->TIM0 = RTC_C->TIM0 + 1;
-               }
-               else {
-                  RTC_C->TIM0 = (((RTC_C->TIM0 & 0xFF00) >> 8)+1)<<8;
-                    time_update = 1;
-                }
+        time_set=1;
     }
     if(status & BIT5) //set alarm
     {
