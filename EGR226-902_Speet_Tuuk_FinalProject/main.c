@@ -94,6 +94,24 @@ P1->DIR  |= BIT6;
 P1->OUT &=~BIT6;
 //LCD done ******************************************************************************************
 
+//Push Buttons***************************************************************************************
+//P3.2 second timing
+//P3.3 minute timing
+//P3.5 Set Alarm
+//P3.6 Set Time
+//P3.7 Snooze/Down
+//P3.0 On/Off/Up
+    P3->SEL0 &= ~(BIT0|BIT2|BIT3|BIT5|BIT6|BIT7);
+    P3->SEL1 &= ~(BIT0|BIT2|BIT3|BIT5|BIT6|BIT7);
+    P3->DIR  &= ~(BIT0|BIT2|BIT3|BIT5|BIT6|BIT7);
+    P3->REN  |=  (BIT0|BIT2|BIT3|BIT5|BIT6|BIT7);
+    P3->OUT  |=  (BIT0|BIT2|BIT3|BIT5|BIT6|BIT7);
+    P3->IES  |=  (BIT0|BIT2|BIT3|BIT5|BIT6|BIT7);
+    P3->IE   |=  (BIT0|BIT2|BIT3|BIT5|BIT6|BIT7);
+
+    P3->IFG = 0;
+    NVIC_EnableIRQ(PORT3_IRQn);
+//Buttons done***************************************************************************************
 }
 void commandWrite(uint8_t command)
 {
@@ -217,5 +235,38 @@ void RTC_C_IRQHandler()
     {
         alarm_update = 1;
         RTC_C->CTL0 = (0xA500) | BIT5;
+    }
+}
+void PORT3_IRQHandler()
+{
+    int status = P3->IFG;
+    P3->IFG = 0;
+    if(status & BIT2) //second timing
+    {
+        //sets the RTC to have 1 second real time = 1 second clock time
+    }
+    if(status & BIT3) //minute timing
+    {
+        //sets the RTC so that 1 second real time = 1 minute clock time
+    }
+    if(status & BIT5) //set alarm
+    {
+        //sets the alarm time for the RTC
+    }
+    if(status & BIT6) //set time
+    {
+        //sets the current time for the RTC
+    }
+    if(status & BIT7) //snooze/down
+    {
+        //sets the alarm for 10 minutes later for the snooze function
+        //acts as the DOWN button for when times are entered
+    }
+    if(status & BIT0) //On/Off/Up
+    {
+        //turns the alarm on/off when it hasn't sounded yet
+        //turns the alarm off if it is going off
+        //turns pff the alarm if warm up lights sequence has started 5 min before alarm time
+        //acts as the UP button for when times are entered
     }
 }
