@@ -248,6 +248,13 @@ void PORT3_IRQHandler()
     if(status & BIT3) //minute timing
     {
         //sets the RTC so that 1 second real time = 1 minute clock time
+        if(secs != 59){
+                   RTC_C->TIM0 = RTC_C->TIM0 + 1;
+               }
+               else {
+                  RTC_C->TIM0 = (((RTC_C->TIM0 & 0xFF00) >> 8)+1)<<8;
+                    time_update = 1;
+                }
     }
     if(status & BIT5) //set alarm
     {
