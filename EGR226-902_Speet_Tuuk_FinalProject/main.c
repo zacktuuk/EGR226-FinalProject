@@ -95,12 +95,12 @@ P1->OUT &=~BIT6;
 //LCD done ******************************************************************************************
 
 //Push Buttons***************************************************************************************
-//P3.2 second timing
-//P3.3 minute timing
-//P3.5 Set Alarm
-//P3.6 Set Time
-//P3.7 Snooze/Down
-//P3.0 On/Off/Up
+//P3.2 second timing    BLACK
+//P3.3 minute timing    WHITE
+//P3.5 Set Alarm        BLUE sanded
+//P3.6 Set Time         GREEN
+//P3.7 Snooze/Down      RED
+//P3.0 On/Off/Up        BLUE
     P3->SEL0 &= ~(BIT0|BIT2|BIT3|BIT5|BIT6|BIT7);
     P3->SEL1 &= ~(BIT0|BIT2|BIT3|BIT5|BIT6|BIT7);
     P3->DIR  &= ~(BIT0|BIT2|BIT3|BIT5|BIT6|BIT7);
@@ -222,13 +222,13 @@ void RTC_C_IRQHandler()
         hours = RTC_C->TIM1 & 0x00FF;
         mins = (RTC_C->TIM0 & 0xFF00) >> 8;
         secs = RTC_C->TIM0 & 0x00FF;
-        if(secs != 59){
-            RTC_C->TIM0 = RTC_C->TIM0 + 1;
-        }
-        else {
-            RTC_C->TIM0 = (((RTC_C->TIM0 & 0xFF00) >> 8)+1)<<8;
+//        if(secs != 59){
+//            RTC_C->TIM0 = RTC_C->TIM0 + 1;
+//        }
+//        else {
+//            RTC_C->TIM0 = (((RTC_C->TIM0 & 0xFF00) >> 8)+1)<<8;
             time_update = 1;
-        }
+//        }
         RTC_C->PS1CTL &= ~BIT0;
     }
     if(RTC_C->CTL0 & BIT1)
