@@ -56,7 +56,6 @@ while (1){
                     printf("ALARM\n");
                     alarm_update = 0;
                 }
-
         break;
     }
 }
