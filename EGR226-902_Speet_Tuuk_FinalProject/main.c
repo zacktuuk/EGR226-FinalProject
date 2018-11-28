@@ -235,6 +235,7 @@ void RTC_C_IRQHandler()
         }
     }
 
+
     if(time_set == 0)
     {
         if(RTC_C->PS1CTL & BIT0){
